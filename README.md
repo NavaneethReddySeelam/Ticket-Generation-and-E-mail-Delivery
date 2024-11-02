@@ -46,7 +46,7 @@ The **GameCraft Hackathon 2024** Registration System is a web application design
 5. **Run the Script**:
    Execute the main script to start the registration process:
    ```bash
-   python main.py
+   python send_tokens.py
    ```
 
 ## Usage
