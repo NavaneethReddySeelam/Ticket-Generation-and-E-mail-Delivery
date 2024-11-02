@@ -23,16 +23,15 @@ The **GameCraft Hackathon 2024** Registration System is a web application design
 ## Setup Instructions
 1. **Clone the Repository**:
    ```bash
-git clone git@github.com:NavaneethReddySeelam/Ticket-Generation-and-E-mail-Delivery.git
-   cd Ticket-Generation-and-E-mail-Delivery
-   cd hackathon
+   git clone https://github.com/YOUR_USERNAME/GameCraft-Hackathon-2024.git
+   cd GameCraft-Hackathon-2024
    ```
 
 2. **Create a `.env` File**: 
    Create a file named `.env` in the root directory and add your email credentials:
    ```
-   EMAIL_ADDRESS=your_email@example.com
-   EMAIL_PASSWORD=your_password
+   EMAIL_ADDRESS=2200039096@kluniversity.in
+   EMAIL_PASSWORD=Bvk@100505
    ```
 
 3. **Install Required Packages**:
@@ -47,7 +46,7 @@ git clone git@github.com:NavaneethReddySeelam/Ticket-Generation-and-E-mail-Deliv
 5. **Run the Script**:
    Execute the main script to start the registration process:
    ```bash
-   python send_tokens.py
+   python main.py
    ```
 
 ## Usage
