@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Hackathon Ticket</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        #ticket-info {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            display: inline-block;
+            width: 300px;
+            text-align: left;
+        }
+        p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Gaming Hackathon!</h1>
+    <div id="ticket-info">Loading ticket details...</div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        fetch(`http://localhost:3000/getParticipant?token=${token}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('ticket-info').innerHTML = `
+                    <p>Name: ${data.name}</p>
+                    <p>University ID: ${data.universityId}</p>
+                    <p>Email: ${data.email}</p>
+                    <p>Category: ${data.category}</p>
+                    <p>Token: ${data.token}</p>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('ticket-info').innerHTML = `
+                    <p>Error fetching ticket data. Please try again later.</p>
+                `;
+                console.error('Error fetching ticket data:', error);
+            });
+    </script>
+</body>
+</html>
