@@ -61,12 +61,18 @@ def create_ticket_pdf(name, token, date, folder_path):
     pdf.output(pdf_file_name)
     return pdf_file_name
 
-# Load your Excel file
-df = pd.read_excel('participants.xlsx')
+# Load or create 'failed' and 'passed' lists
+def load_failed_passed_lists():
+    failed_df = pd.read_excel('failed_email_participants.xlsx') if os.path.exists('failed_email_participants.xlsx') else pd.DataFrame(columns=['Name', 'Email', 'Status'])
+    passed_df = pd.read_excel('passed_email_participants.xlsx') if os.path.exists('passed_email_participants.xlsx') else pd.DataFrame(columns=['Name', 'Email'])
+    return failed_df, passed_df
 
-# Initialize token
-starting_token = 1000
+# Save DataFrame to JSON file
+def save_to_json(filename, data):
+    with open(filename, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
 
+# Function to send email with attached PDF ticket
 def send_email(name, email, token, pdf_file_name):
     message = MIMEMultipart()
     message['From'] = EMAIL_ADDRESS
@@ -104,32 +110,51 @@ Team Mayavi
         logging.error(f"Failed to send email to {email}: {e}")
         return False
 
-failed_emails = []
-hackathon_date = "8-11-2024 to 9-11-2024"
-pdf_folder_path = 'tickets'
+# Main process
+def main():
+    # Load participants from main list
+    participants_df = pd.read_excel('participants.xlsx')
+    
+    # Load or create 'failed' and 'passed' lists
+    failed_df, passed_df = load_failed_passed_lists()
+    
+    # Initialize token
+    starting_token = len(passed_df) + 1000  # Start token based on already passed emails
+    hackathon_date = "8-11-2024 to 9-11-2024"
+    pdf_folder_path = 'tickets'
+    unique_emails = set(passed_df['Email'].values)  # Set of already passed emails
 
-for index, row in df.iterrows():
-    token = starting_token + index
-    df.at[index, 'Token'] = token
+    # Process each participant
+    for index, row in participants_df.iterrows():
+        name, email = row['name'], row['email']
 
-    if is_valid_email(row['email']):
-        pdf_file_name = create_ticket_pdf(row['name'], token, hackathon_date, pdf_folder_path)
-        if not send_email(row['name'], row['email'], token, pdf_file_name):
-            df.at[index, 'EmailSent'] = 'Failed'
-            failed_emails.append(row['name'])
+        if email in unique_emails:
+            logging.info(f"Skipping {email}, already processed.")
+            continue
+        
+        if is_valid_email(email):
+            token = starting_token + index  # Unique token for each participant
+            pdf_file_name = create_ticket_pdf(name, token, hackathon_date, pdf_folder_path)
+            if send_email(name, email, token, pdf_file_name):
+                passed_df = pd.concat([passed_df, pd.DataFrame([{'Name': name, 'Email': email}])], ignore_index=True)
+                unique_emails.add(email)
+                participants_df.at[index, 'EmailSent'] = 'Yes'
+            else:
+                failed_df = pd.concat([failed_df, pd.DataFrame([{'Name': name, 'Email': email, 'Status': 'Failed'}])], ignore_index=True)
+                participants_df.at[index, 'EmailSent'] = 'Failed'
         else:
-            df.at[index, 'EmailSent'] = 'Yes'
-    else:
-        logging.warning(f"Invalid email format for {row['name']}: {row['email']}")
+            logging.warning(f"Invalid email format for {name}: {email}")
+            participants_df.at[index, 'EmailSent'] = 'Invalid Email'
 
-df.to_excel('participants_with_tokens.xlsx', index=False)
-
-if failed_emails:
-    failed_df = df[df['EmailSent'] == 'Failed']
+    # Save updated lists
+    participants_df.to_excel('participants_with_tokens.xlsx', index=False)
     failed_df.to_excel('failed_email_participants.xlsx', index=False)
-    logging.info("Failed emails saved.")
+    passed_df.to_excel('passed_email_participants.xlsx', index=False)
+    
+    # Update JSON file
+    json_data = participants_df.to_dict(orient='records')
+    save_to_json('participants.json', json_data)
+    logging.info("JSON file updated with participant data.")
 
-json_data = df.to_dict(orient='records')
-with open('participants.json', 'w') as json_file:
-    json.dump(json_data, json_file, indent=4)
-logging.info("JSON file updated with participant data.")
+if __name__ == "__main__":
+    main()

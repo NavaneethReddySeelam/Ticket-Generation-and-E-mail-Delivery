@@ -22,13 +22,14 @@ while (tokensUsed.has(currentToken)) {
     currentToken++;
 }
 
+// Assign tokens if not present
 participants.forEach(participant => {
     if (!participant.Token) {
         participant.Token = currentToken++;
     }
 });
 
-// Async function to get participant details and send email
+// Route to get participant details and send email
 app.get('/getParticipant', async (req, res) => {
     const { token, email } = req.query;
 
@@ -51,6 +52,7 @@ app.get('/getParticipant', async (req, res) => {
         await sendEmail(participant.name, participant.email, participant.Token, pdfBuffer);
         participant.emailSent = true;
 
+        // Update participants.json
         await fs.writeFile('./participants.json', JSON.stringify(participants, null, 2));
         res.status(200).json({ message: 'Email sent successfully', participant });
     } catch (error) {
@@ -109,15 +111,18 @@ async function sendEmail(name, email, token, pdfBuffer) {
     return transporter.sendMail(mailOptions);
 }
 
-// Function to log failed emails
+// Log failed emails uniquely
 async function logFailedEmail(participant) {
     const failedEmailsPath = path.join(__dirname, 'failed_email_participants.json');
     const failedParticipants = await fs.readFile(failedEmailsPath)
         .then(data => JSON.parse(data))
         .catch(() => []);
 
-    failedParticipants.push(participant);
-    await fs.writeFile(failedEmailsPath, JSON.stringify(failedParticipants, null, 2));
+    // Check if participant is already in failed list
+    if (!failedParticipants.some(fp => fp.email === participant.email)) {
+        failedParticipants.push(participant);
+        await fs.writeFile(failedEmailsPath, JSON.stringify(failedParticipants, null, 2));
+    }
 }
 
 const PORT = process.env.PORT || 3000;

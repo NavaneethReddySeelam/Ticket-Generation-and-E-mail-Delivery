@@ -4,35 +4,34 @@
         "universityId": "U123456",
         "email": "2200039142@kluniversity.in",
         "category": "Category-1",
-        "Year": 2021,
-        "Token": 1000.0,
-        "EmailSent": "Yes"
+        "Year": 2021
     },
     {
         "name": "Navaneeth",
         "universityId": "U654321",
         "email": "2200039025@kluniversity.in",
         "category": "Category-2",
-        "Year": 2022,
-        "Token": 1001.0,
-        "EmailSent": "Yes"
+        "Year": 2022
     },
     {
         "name": "Vijay Krishna",
         "universityId": "U654331",
         "email": "2200039090@kluniversity.in",
         "category": "Category-1",
-        "Year": 2023,
-        "Token": 1002.0,
-        "EmailSent": "Yes"
+        "Year": 2023
     },
     {
         "name": "ravi",
         "universityId": "U654341",
         "email": "2200039170@kluniversity.in",
         "category": "category-2",
-        "Year": 2022,
-        "Token": 1003.0,
-        "EmailSent": "Yes"
+        "Year": 2022
+    },
+    {
+        "name": "tarun",
+        "universityId": "U654341",
+        "email": "2200039159@kluniversity.in",
+        "category": "Category-2",
+        "Year": 2020
     }
 ]
