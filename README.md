@@ -23,8 +23,9 @@ The **GameCraft Hackathon 2024** Registration System is a web application design
 ## Setup Instructions
 1. **Clone the Repository**:
    ```bash
-   git clone [https://github.com/NavaneethReddySeelam/GameCraft-Hackathon-2024.git](https://github.com/NavaneethReddySeelam/Ticket-Generation-and-E-mail-Delivery.git)
-   cd GameCraft-Hackathon-2024
+git clone git@github.com:NavaneethReddySeelam/Ticket-Generation-and-E-mail-Delivery.git
+   cd Ticket-Generation-and-E-mail-Delivery
+   cd hackathon
    ```
 
 2. **Create a `.env` File**: 
