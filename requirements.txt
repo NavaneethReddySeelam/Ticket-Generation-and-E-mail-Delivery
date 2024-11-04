@@ -1,2 +1,6 @@
-fpdf==1.7.2
-pandas==2.2.3
+Pillow
+pandas
+openpyxl
+smtplib
+python-dotenv
+logging
