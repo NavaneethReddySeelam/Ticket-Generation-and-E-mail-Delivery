@@ -1,140 +1,83 @@
 
-# Hackathon Ticket Generation and Email Delivery System
+# Hackathon Ticket Generator and Email Sender
 
-This project is a **Hackathon Registration and Ticketing System** designed to automate the process of generating unique participant tokens, creating personalized tickets, and sending these tickets as email attachments to participants. The system uses **Node.js, Express, Nodemailer, Canvas**, and **Excel** to manage participant data and send out custom ticket images.
-
----
-
-## Table of Contents
-
-- [Project Overview](#project-overview)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Error Handling](#error-handling)
-- [Future Improvements](#future-improvements)
-- [Contributing](#contributing)
-- [License](#license)
+This project provides a script to generate custom tickets for hackathon participants and send them via email. 
+The script ensures that each participant receives a unique ticket only once, and it retries sending for any 
+failed attempts.
 
 ---
-
-## Project Overview
-
-This system automates the ticket generation process for a hackathon, including:
-- Loading participant details from an Excel sheet.
-- Generating a unique token number for each participant.
-- Creating a personalized PNG ticket for each participant using Canvas.
-- Sending an email with the ticket attached to each participant.
-
-The token generation starts at 1000 and increments by one for each participant, ensuring unique identification. Invalid emails are skipped, and errors are logged.
 
 ## Features
 
-- **Unique Token Generation**: Tokens start at 1000 and are incrementally assigned.
-- **Personalized Ticket Creation**: Tickets are generated with participant-specific information.
-- **Email Delivery**: Sends tickets as email attachments using Nodemailer.
-- **Excel Support**: Participant data is loaded from and saved to Excel sheets.
-- **Error Logging**: Logs errors for missing data or email send failures.
+1. Generates a personalized ticket for each participant using provided details.
+2. Sends emails with the ticket as an attachment.
+3. Tracks participants in JSON format to avoid duplicate emails.
+4. Logs failed and successful email attempts in Excel files.
 
-## Prerequisites
+---
 
-- **Node.js** and **npm**
-- **Python 3.x**
-- **pip** package manager
-- **Excel file** containing participant data
+## Requirements
 
-## Installation
+1. **Install Dependencies**
 
-1. **Clone the Repository**:
-    ```bash
-    git clone <repository-url>
-    cd <repository-folder>
-    ```
-
-2. **Install Dependencies**:
-    For Node.js server:
-    ```bash
-    npm install
-    ```
-
-    For Python script:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3. **Directory Setup**:
-   Ensure you have the following file paths:
-   - `D:/hackathon/ticket.png` (Template image for tickets)
-   - `D:/hackathon/CASTELAR.TTF` (Font file for tickets)
-
-## Configuration
-
-1. **Environment Variables**: Create a `.env` file in the project root directory and add the following:
-   ```plaintext
-   SMTP_HOST=smtp.your-email-provider.com
-   SMTP_PORT=587
-   EMAIL_ADDRESS=your-email@example.com
-   EMAIL_PASSWORD=your-email-password
+   Make sure you have `pandas`, `Pillow`, and `python-dotenv` installed:
+   ```bash
+   pip install pandas pillow python-dotenv
    ```
 
-   Ensure your `.env` file is **not tracked in Git** to keep credentials secure.
+2. **Environment Variables**
 
-2. **Excel Sheet Format**: Ensure your `participants.xlsx` file contains columns:
-   - `Name`, `UniversityId`, `Email`, `Category`, and `Year`.
+   Create a `.env` file in the project directory with your email credentials and SMTP server settings:
+   ```env
+   EMAIL_ADDRESS=your_email@example.com
+   EMAIL_PASSWORD=your_password
+   SMTP_SERVER=smtp.office365.com
+   SMTP_PORT=587
+   ```
+
+3. **Required Files**
+
+   - **Ticket Template**: Save the ticket template image as `ticket.png` and place it at the specified path (`D:\hackathon\ticket.png`).
+   - **Font File**: Save the font file (e.g., `CASTELAR.TTF`) at the specified path (`D:\hackathon\CASTELAR.TTF`).
+   - **Participants Data**: Prepare a `participants.xlsx` file with the following columns:
+     - `name`: Participant's full name
+     - `email`: Email address for sending the ticket
+     - `universityId`: Unique university ID for the participant
+     - `Year`: Academic year of the participant
+
+---
 
 ## Usage
 
-1. **Load and Generate Tokens**:
-   - Run the server:
-     ```bash
-     node server.js
-     ```
-   - The server will load participants, generate tokens, and store updated data.
+1. **Run the Script**
 
-2. **Send Tickets**:
-   - Endpoint to generate and send tickets:
-     ```bash
-     GET /sendTickets
-     ```
-   - The system creates a PNG ticket, attaches it to an email, and sends it to each participant.
-
-3. **Python Script (Alternative)**:
-   Run the `send_tokens.py` script to perform the same tasks as the server:
+   Run the `main.py` script using the following command:
    ```bash
-   python send_tokens.py
+   python main.py
    ```
 
-## Project Structure
+2. **Process Details**
 
-```
-.
-├── server.js               # Main server file
-├── send_tokens.py          # Python script for ticket generation
-├── participants.xlsx       # Participant data (Excel format)
-├── tickets/                # Folder for generated ticket images
-├── .env                    # Environment variables
-├── README.md               # Project documentation
-└── package.json            # Node.js dependencies
-```
+   The script performs the following actions:
+   - Reads participants' data from `participants.xlsx`.
+   - Generates a ticket image for each participant.
+   - Sends an email with the ticket attached.
+   - Updates `failed_participants.xlsx` and `passed_participants.xlsx` based on success or failure.
 
-## Error Handling
+3. **Log Files**
+   - **failed_participants.xlsx**: Records participants for whom email sending failed.
+   - **passed_participants.xlsx**: Records participants who successfully received the ticket.
+   - **participants.json**: Maintains a list of participants who have already received the ticket.
 
-- **Email Send Failures**: Participants who do not receive emails due to errors are logged.
-- **File Path Issues**: Errors for missing template image or font file are logged in the console.
+---
 
-## Future Improvements
+## Troubleshooting
 
-- **Dynamic Template Selection**: Allow users to choose different ticket templates.
-- **Enhanced Error Reporting**: Include more detailed error logs and email validation.
-- **Database Integration**: Replace the Excel sheet with a database for improved scalability.
+- **Missing Template or Font Files**: Ensure that `ticket.png` and `CASTELAR.TTF` are available at the specified paths.
+- **SMTP Issues**: Check your email credentials and server details in the `.env` file.
+- **Excel File Format**: Ensure `participants.xlsx` has the correct columns and valid data.
 
-## Contributing
-
-Feel free to contribute by opening a pull request.
+---
 
 ## License
-
 This project is licensed under the MIT License.
