@@ -13,67 +13,88 @@ app.use(cors());
 app.use(express.json());
 
 const participantsFilePath = './participants.xlsx';
-const participantsJsonFilePath = './participants.json';
 const ticketsDir = path.join(__dirname, 'tickets');
+const failedFilePath = './failed_participants.xlsx';
+const passedFilePath = './successful_participants.xlsx';
+
 let participants = [];
+let failedParticipants = [];
+let passedParticipants = [];
 
-// Load participants from JSON file
-async function loadParticipants() {
-    try {
-        const data = await fs.readFile(participantsJsonFilePath, 'utf-8');
-        participants = JSON.parse(data);
-    } catch (error) {
-        if (error.code !== 'ENOENT') {
-            console.error('Failed to load participants:', error);
-        }
-        participants = [];
-    }
-}
-
-// Save participants to JSON file with safe write operation
-async function saveParticipants() {
-    try {
-        const tempFilePath = `${participantsJsonFilePath}.tmp`;
-        await fs.writeFile(tempFilePath, JSON.stringify(participants, null, 2));
-        await fs.rename(tempFilePath, participantsJsonFilePath);
-    } catch (error) {
-        console.error('Failed to save participants:', error);
-    }
-}
-
-// Load participants from Excel file and generate unique tokens
+// Load participants from Excel file
 async function loadParticipantsFromExcel() {
     try {
         const workbook = xlsx.readFile(participantsFilePath);
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
 
-        const loadedParticipants = xlsx.utils.sheet_to_json(sheet);
-        const tokensUsed = new Set(participants.map(p => p.Token));
+        participants = xlsx.utils.sheet_to_json(sheet);
+        const tokensUsed = new Set(participants.map(p => p.Token).filter(Boolean));
         let currentToken = 1000;
 
-        loadedParticipants.forEach(participant => {
+        participants.forEach(participant => {
             if (!participant.Token) {
                 while (tokensUsed.has(currentToken)) currentToken++;
                 participant.Token = currentToken++;
                 tokensUsed.add(participant.Token);
             }
-            if (!participants.some(p => p.UniversityId === participant.UniversityId)) {
-                participants.push(participant);
-            }
         });
-
-        await saveParticipants();
     } catch (error) {
         console.error('Failed to load participants from Excel:', error);
     }
+}
+
+// Load passed and failed participants from Excel files
+async function loadStatusLists() {
+    try {
+        if (await fs.access(passedFilePath).then(() => true).catch(() => false)) {
+            const workbook = xlsx.readFile(passedFilePath);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            passedParticipants = xlsx.utils.sheet_to_json(sheet);
+        }
+
+        if (await fs.access(failedFilePath).then(() => true).catch(() => false)) {
+            const workbook = xlsx.readFile(failedFilePath);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            failedParticipants = xlsx.utils.sheet_to_json(sheet);
+        }
+    } catch (error) {
+        console.error('Failed to load passed and failed lists:', error);
+    }
+}
+
+// Append participant data to an Excel file
+async function addToExcelFile(filePath, participant) {
+    try {
+        let workbook;
+        if (await fs.access(filePath).then(() => true).catch(() => false)) {
+            workbook = xlsx.readFile(filePath);
+        } else {
+            workbook = xlsx.utils.book_new();
+        }
+
+        const sheetName = 'Participants';
+        const dataSheet = workbook.Sheets[sheetName] || xlsx.utils.json_to_sheet([]);
+        const data = xlsx.utils.sheet_to_json(dataSheet);
+
+        data.push(participant);
+        workbook.Sheets[sheetName] = xlsx.utils.json_to_sheet(data);
+        xlsx.writeFile(workbook, filePath);
+    } catch (error) {
+        console.error('Failed to update Excel file:', error);
+    }
+}
+
+// Check if participant is in a list by university ID
+function isInList(list, universityId) {
+    return list.some(p => p.UniversityId === universityId);
 }
 
 // Send email with PNG attachment
 async function sendEmail(participant, pngPath) {
     if (!process.env.SMTP_HOST || !process.env.EMAIL_ADDRESS || !process.env.EMAIL_PASSWORD) {
         console.error('Missing required environment variables for email configuration');
-        return;
+        return false;
     }
 
     const transporter = nodemailer.createTransport({
@@ -102,8 +123,10 @@ async function sendEmail(participant, pngPath) {
     try {
         await transporter.sendMail(mailOptions);
         console.log(`Email sent to ${participant.Email}`);
+        return true;
     } catch (error) {
         console.error(`Failed to send email to ${participant.Email}: ${error}`);
+        return false;
     }
 }
 
@@ -137,42 +160,46 @@ async function createTicketImage(participant) {
     return outputPath;
 }
 
-// Route to generate images and send emails to all participants
+// Process participants and update lists based on email success or failure
+async function processParticipants() {
+    for (const participant of participants) {
+        if (isInList(passedParticipants, participant.UniversityId)) {
+            // Skip if already in passed list
+            console.log(`Skipping ${participant.Name}, email already sent.`);
+            continue;
+        }
+
+        const pngPath = await createTicketImage(participant);
+        const emailSuccess = await sendEmail(participant, pngPath);
+
+        if (emailSuccess) {
+            await addToExcelFile(passedFilePath, participant);
+            passedParticipants.push(participant);
+            failedParticipants = failedParticipants.filter(p => p.UniversityId !== participant.UniversityId);
+        } else {
+            await addToExcelFile(failedFilePath, participant);
+            failedParticipants.push(participant);
+        }
+
+        await fs.unlink(pngPath); // Delete PNG after sending
+    }
+}
+
+// Endpoint to start the email process
 app.get('/sendTickets', async (req, res) => {
     try {
         await loadParticipantsFromExcel();
-
-        for (const participant of participants) {
-            if (!participant.Email || !isValidEmail(participant.Email)) {
-                console.warn(`Invalid email for participant ${participant.Name}: ${participant.Email}`);
-                continue;
-            }
-            const pngPath = await createTicketImage(participant);
-            await sendEmail(participant, pngPath);
-            participant.EmailSent = 'Yes';
-
-            await fs.unlink(pngPath);
-        }
-
-        await saveParticipants();
-        res.status(200).send("Emails sent successfully to all participants!");
+        await loadStatusLists();
+        await processParticipants();
+        res.status(200).send("Emails processed successfully!");
     } catch (error) {
         console.error('Error processing participants:', error);
         res.status(500).send("Failed to process participants.");
     }
 });
 
-// Email validation function
-function isValidEmail(email) {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-}
-
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
-
-// Initialize by loading participants
-loadParticipants();
